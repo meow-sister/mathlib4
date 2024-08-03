@@ -731,12 +731,14 @@ theorem Dirac (hV : ‖V‖ ≥ 3) (hG : ∀ u, 2 * G.degree u ≥ ‖V‖) : G.
         add_le_add (degree_mono u (self_le_closure G)) (degree_mono v (self_le_closure G))
   exact from_closure (this ▸ completeGraph (by omega))
 
-theorem Ore (hV : ‖V‖ ≥ 3) (hG : ∀ {u} {v}, u ≠ v → G.degree u + G.degree v ≥ ‖V‖)
+theorem Ore (hV : ‖V‖ ≥ 3) (hG : ∀ {u} {v}, ¬ G.Adj u v → G.degree u + G.degree v ≥ ‖V‖)
   : G.IsHamiltonian := by
   have : G.closure = (⊤ : SimpleGraph V) := by
     rw [eq_top_iff]; intro u v ne; simp at ne
-    apply closure_spec G ne; calc
-      ‖V‖ ≤ G.degree u + G.degree v := hG ne
+    by_cases adj : G.Adj u v
+    · exact self_le_closure G adj
+    · apply closure_spec G ne; calc
+      ‖V‖ ≤ G.degree u + G.degree v := hG adj
       _ ≤ G.closure.degree u + G.closure.degree v :=
         add_le_add (degree_mono u (self_le_closure G)) (degree_mono v (self_le_closure G))
   exact from_closure (this ▸ completeGraph (by omega))
