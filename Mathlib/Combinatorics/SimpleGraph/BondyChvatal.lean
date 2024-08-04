@@ -1,7 +1,27 @@
+/-
+Copyright (c) 2024 Shuhao Song. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Shuhao Song
+-/
 import Batteries.Data.List.Pairwise
 import Mathlib.Data.List.Infix
 import Mathlib.Combinatorics.SimpleGraph.Operations
 import Mathlib.Combinatorics.SimpleGraph.Hamiltonian
+
+/-!
+# Bondy-Chvátal theorem
+
+In this file we proved Bondy-Chvátal theorem and some of its corollaries.
+
+## Main definitions
+
+* `SimpleGraph.IsHamiltonian.from_closure`: Bondy-Chvátal theorem, a graph is
+  Hamiltonian iff its closure is Hamiltonian.
+* `SimpleGraph.IsHamiltonian.Dirac`: Dirac's theorem: If `G` is a graph with at least 3 vertices,
+  and deg(u) ≥ |V| / 2 for every vertex `u`, then `G` is Hamiltonian.
+* `SimpleGraph.IsHamiltonian.Ore`: Ore's theorem: If `G` is a graph with at least 3 vertices,
+  amd deg(u) + deg(v) ≥ |V| for every non-adjacent vertices `u` and `v`, then `G` is Hamiltonian.
+-/
 
 noncomputable section
 open scoped List
@@ -23,8 +43,8 @@ theorem reverse_tail {α} (l : List α) : l.reverse.tail = l.dropLast.reverse :=
     simp; omega; simp; omega; omega
   · rw [getElem?_eq_none, getElem?_eq_none]; simp; omega; simp; omega
 
-theorem getLast_tail {α} (l : List α) (hl : l.tail ≠ [])
-  : l.tail.getLast hl = l.getLast (by intro h; rw [h] at hl; simp at hl) := by
+theorem getLast_tail {α} (l : List α) (hl : l.tail ≠ []) :
+    l.tail.getLast hl = l.getLast (by intro h; rw [h] at hl; simp at hl) := by
   simp [getLast_eq_get, ← drop_one] at hl |-; rw [← getElem_drop]
   simp [show 1 + (l.length - 1 - 1) = l.length - 1 by omega]; omega
 end List
@@ -34,8 +54,8 @@ open Classical
 variable {V : Type*} [Fintype V] {G : SimpleGraph V}
 
 namespace Walk
-def fromList {l : List V} (ne : l ≠ []) (hl : l.Chain' (fun u v => G.Adj u v))
-  : G.Walk (l.head ne) (l.getLast ne) :=
+def fromList {l : List V} (ne : l ≠ []) (hl : l.Chain' (fun u v => G.Adj u v)) :
+    G.Walk (l.head ne) (l.getLast ne) :=
   match l with
   | [] => by simp at ne
   | a :: l' =>
@@ -50,8 +70,8 @@ def fromList {l : List V} (ne : l ≠ []) (hl : l.Chain' (fun u v => G.Adj u v))
           simp (config := {singlePass := true}) only [← List.tail_cons (a := a) (as := l')]
           rw [List.getLast_tail]))
 
-def fromList_support {l : List V} (ne : l ≠ []) (hl : l.Chain' (fun u v => G.Adj u v))
-  : (fromList ne hl).support = l := by
+def fromList_support {l : List V} (ne : l ≠ []) (hl : l.Chain' (fun u v => G.Adj u v)) :
+    (fromList ne hl).support = l := by
   induction l with
   | nil => simp at ne
   | cons a l' ih =>
@@ -64,27 +84,29 @@ def fromList_support {l : List V} (ne : l ≠ []) (hl : l.Chain' (fun u v => G.A
   rw [← cons_support_tail p hp, List.tail_cons]
 
 @[simp]
-theorem tail_support_ne_nil {u v : V} {p : G.Walk u v} (hp : ¬p.Nil) : p.support.tail ≠ [] :=
-  by cases p <;> simp at hp |-
+theorem tail_support_ne_nil {u v : V} {p : G.Walk u v} (hp : ¬p.Nil) : p.support.tail ≠ [] := by
+  cases p <;> simp at hp |-
 
-def firstDart_mem_darts {u v : V} (p : G.Walk u v) (hp : ¬p.Nil)
-  : p.firstDart hp ∈ p.darts := by
+def firstDart_mem_darts {u v : V} (p : G.Walk u v) (hp : ¬p.Nil) :
+    p.firstDart hp ∈ p.darts := by
   induction p <;> simp [Walk.firstDart, Walk.sndOfNotNil, Walk.notNilRec] at hp |-
 
-def lm03 {α} (L : List α) (hL : L ≠ []) : (L.getLast hL :: L.dropLast) ~r L := by
+def IsRotated_cons_getLast_dropLast
+    {α} (L : List α) (hL : L ≠ []) : (L.getLast hL :: L.dropLast) ~r L := by
   induction L using List.reverseRecOn with
   | nil => simp at hL
   | append_singleton a L _ =>
     simp; apply List.IsRotated.symm; apply List.isRotated_concat
 
-def lm05 {α} {L : List α} (hL : L ≠ []) (hL' : L.head hL = L.getLast hL) : L.dropLast ~r L.tail :=
+def _root_.List.IsRotated_dropLast_tail {α}
+    {L : List α} (hL : L ≠ []) (hL' : L.head hL = L.getLast hL) : L.dropLast ~r L.tail :=
   match L with
   | [] => by simp
   | [_] => by simp
-  | a :: b :: L => by simp at hL' |-; rw [hL']; apply lm03
+  | a :: b :: L => by simp at hL' |-; rw [hL']; apply IsRotated_cons_getLast_dropLast
 
-@[simp] def support_head {u v : V} {p : G.Walk u v} : p.support.head (by simp) = u :=
-  by induction p <;> simp
+@[simp] def support_head {u v : V} {p : G.Walk u v} : p.support.head (by simp) = u := by
+  induction p <;> simp
 
 theorem head_reverse {α} (l : List α) (hL : l ≠ []) :
     l.reverse.head (by simpa) = l.getLast hL := by
@@ -99,10 +121,10 @@ theorem head_reverse {α} (l : List α) (hL : l ≠ []) :
 
 def IsCycle.IsRotated_dropLast_tail {u : V} {c : G.Walk u u} (_ : IsCycle c) :
     c.support.dropLast ~r c.support.tail := by
-  apply lm05 (show c.support ≠ [] by simp); simp
+  apply List.IsRotated_dropLast_tail (show c.support ≠ [] by simp); simp
 
-@[simp] def rotate_length_eq {u v : V} {c : G.Walk u u} (hv : v ∈ c.support)
-  : (c.rotate hv).length = c.length := by
+@[simp] def rotate_length_eq {u v : V} {c : G.Walk u u} (hv : v ∈ c.support) :
+    (c.rotate hv).length = c.length := by
   have : (c.rotate hv).edges ~r c.edges := by apply rotate_edges
   simp only [← length_edges]; exact this.perm.length_eq
 
@@ -116,40 +138,40 @@ def IsCycle.support_dropLast_Nodup {u : V} {c : G.Walk u u} (qc : IsCycle c) :
   exact qc.2
 
 def prev_unique {u v : V} {c : G.Walk u v} {d₁ d₂ : G.Dart} (nodup : c.support.tail.Nodup)
-    (hd₁ : d₁ ∈ c.darts) (hd₂ : d₂ ∈ c.darts) (eq : d₁.snd = d₂.snd)
-  : d₁.fst = d₂.fst := by
+    (hd₁ : d₁ ∈ c.darts) (hd₂ : d₂ ∈ c.darts) (eq : d₁.snd = d₂.snd) :
+    d₁.fst = d₂.fst := by
   by_contra h
   have ne : d₁ ≠ d₂ := by contrapose h; simp at h |-; congr
   exact ne $ List.inj_on_of_nodup_map (c.map_snd_darts ▸ nodup) hd₁ hd₂ eq
 
-def next_unique {u v : V} {c : G.Walk u v} {d₁ d₂ : G.Dart} (nodup : c.support.dropLast.Nodup)
-    (hd₁ : d₁ ∈ c.darts) (hd₂ : d₂ ∈ c.darts) (eq : d₁.fst = d₂.fst)
-  : d₁.snd = d₂.snd := by
+def next_unique {u v : V} {c : G.Walk u v} {d₁ d₂ : G.Dart}
+    (nodup : c.support.dropLast.Nodup) (hd₁ : d₁ ∈ c.darts) (hd₂ : d₂ ∈ c.darts) (eq : d₁.fst = d₂.fst) :
+    d₁.snd = d₂.snd := by
   by_contra h
   have ne : d₁ ≠ d₂ := by contrapose h; simp at h |-; congr
   exact ne $ List.inj_on_of_nodup_map (c.map_fst_darts ▸ nodup) hd₁ hd₂ eq
 
 def IsCycle.prev_unique {u : V} {c : G.Walk u u} {d₁ d₂ : G.Dart} (qc : IsCycle c)
-    (hd₁ : d₁ ∈ c.darts) (hd₂ : d₂ ∈ c.darts) (eq : d₁.snd = d₂.snd)
-  : d₁.fst = d₂.fst := c.prev_unique qc.2 hd₁ hd₂ eq
+    (hd₁ : d₁ ∈ c.darts) (hd₂ : d₂ ∈ c.darts) (eq : d₁.snd = d₂.snd) :
+    d₁.fst = d₂.fst := c.prev_unique qc.2 hd₁ hd₂ eq
 
 def IsCycle.next_unique {u : V} {c : G.Walk u u} {d₁ d₂ : G.Dart} (qc : IsCycle c)
-    (hd₁ : d₁ ∈ c.darts) (hd₂ : d₂ ∈ c.darts) (eq : d₁.fst = d₂.fst)
-  : d₁.snd = d₂.snd := c.next_unique qc.support_dropLast_Nodup hd₁ hd₂ eq
+    (hd₁ : d₁ ∈ c.darts) (hd₂ : d₂ ∈ c.darts) (eq : d₁.fst = d₂.fst) :
+    d₁.snd = d₂.snd := c.next_unique qc.support_dropLast_Nodup hd₁ hd₂ eq
 
-lemma sum_takeUntil_dropUntil_length {u v w : V} {p : G.Walk u v} (hw : w ∈ p.support)
-  : (p.takeUntil w hw).length + (p.dropUntil w hw).length = p.length := by
+lemma sum_takeUntil_dropUntil_length {u v w : V} {p : G.Walk u v} (hw : w ∈ p.support) :
+    (p.takeUntil w hw).length + (p.dropUntil w hw).length = p.length := by
   have := congr_arg (·.length) (p.take_spec hw)
   simpa only [length_append] using this
 
 theorem darts_snd_getElem_support_tail
-    {u v : V} {p : G.Walk u v} (i : ℕ) (h : i < p.length)
-  : (p.darts[i]'(by simpa)).snd = p.support.tail[i]'(by simpa) := by
-  simp [←p.map_snd_darts]
+    {u v : V} {p : G.Walk u v} (i : ℕ) (h : i < p.length) :
+    (p.darts[i]'(by simpa)).snd = p.support.tail[i]'(by simpa) := by
+  simp [← p.map_snd_darts]
 
 theorem darts_getElem_fst
-    {u v : V} {p : G.Walk u v} (i : ℕ) (hi : i < p.length)
-  : (p.darts[i]'(by simpa)).fst = p.support[i]'(by simp; omega) := by
+    {u v : V} {p : G.Walk u v} (i : ℕ) (hi : i < p.length) :
+    (p.darts[i]'(by simpa)).fst = p.support[i]'(by simp; omega) := by
   induction p generalizing i with
   | nil => simp at hi
   | @cons u' v' w' adj tail ih =>
@@ -159,8 +181,8 @@ theorem darts_getElem_fst
       exact ih (i - 1) (by omega)
 
 theorem darts_getElem_snd
-    {u v : V} {p : G.Walk u v} (i : ℕ) (h : i < p.length)
-  : (p.darts[i]'(by simpa)).snd = p.support[i + 1]'(by simpa) := by
+    {u v : V} {p : G.Walk u v} (i : ℕ) (h : i < p.length) :
+    (p.darts[i]'(by simpa)).snd = p.support[i + 1]'(by simpa) := by
   rw [darts_snd_getElem_support_tail i h]; simp only [← List.drop_one]
   rw [← List.getElem_drop]; congr 1; rw [add_comm]; simp; omega
 
@@ -238,9 +260,9 @@ def next_inj : Function.Injective qc.next := by
 theorem next_ne {u : V} : qc.next u ≠ u := by
   intro h; exact G.irrefl (h ▸ qc.Adj_self_next u)
 
-def support_index_succ {u : V} {i : ℕ}
-    (hi : i < c.length) (hi' : c.support[i]'(by simp; omega) = u)
-  : c.support[i + 1]'(by simp; omega) = qc.next u := by
+def support_getElem_succ {u : V} {i : ℕ}
+    (hi : i < c.length) (hi' : c.support[i]'(by simp; omega) = u) :
+    c.support[i + 1]'(by simp; omega) = qc.next u := by
   have mem := List.getElem_mem c.darts i (by simpa)
   obtain ⟨d, mem', hd₂, hd₃⟩ := qc.self_next_in_darts u
   rw [← hi', ← c.darts_getElem_fst i hi] at hd₂
@@ -254,9 +276,9 @@ theorem next_next_ne {u : V} : qc.next (qc.next u) ≠ u := by
   have len_ge_3 := qc'.isCycle.three_le_length
   have c'_at_0 : c'.support[0] = u := by simp [List.getElem_zero]
   have c'_at_1 : c'.support[1]'(by simp; omega) = qc'.next u :=
-    qc'.support_index_succ (i := 0) (by omega) c'_at_0
+    qc'.support_getElem_succ (i := 0) (by omega) c'_at_0
   have c'_at_2 : c'.support[2]'(by simp; omega) = qc'.next (qc'.next u) :=
-    qc'.support_index_succ (i := 1) (by omega) c'_at_1
+    qc'.support_getElem_succ (i := 1) (by omega) c'_at_1
   simp only [← qc.rotate_next u]
   intro h; change qc'.next (qc'.next u) = u at h
   simp_rw [← c'_at_2, ← c'_at_0] at h
@@ -292,8 +314,8 @@ def closureStep_diff_atmost_one : (closureStep G \ G).edgeSet.Subsingleton := by
 def closureStep_ge_self : G ≤ closureStep G := by
   unfold closureStep; split_ifs with h; simp; simp
 
-def closureStep_deleteEdge {u v : V} (huv : ¬G.Adj u v) (huv' : G.closureStep.Adj u v)
-  : G.closureStep.deleteEdges {s(u, v)} = G := by
+def closureStep_deleteEdge {u v : V} (huv : ¬G.Adj u v) (huv' : G.closureStep.Adj u v) :
+    G.closureStep.deleteEdges {s(u, v)} = G := by
   rw [← edgeSet_inj]; ext e; simp [edgeSet_deleteEdges]
   apply Iff.intro
   · rintro ⟨he₁, he₂⟩; by_contra he₃
@@ -321,8 +343,8 @@ def closureStep_eq_iff : closureStep G = G ↔
     Set.eq_empty_iff_forall_not_mem, Set.mem_setOf, Prod.forall]
   apply forall₂_congr; intros; tauto
 
-def closureStep_deg_sum {u v : V} (huv : ¬G.Adj u v) (huv' : G.closureStep.Adj u v)
-  : G.degree u + G.degree v ≥ ‖V‖ := by
+def closureStep_deg_sum {u v : V} (huv : ¬G.Adj u v) (huv' : G.closureStep.Adj u v) :
+    G.degree u + G.degree v ≥ ‖V‖ := by
   have ne : (closureNewEdges G).Nonempty := by
     by_contra h; simp [Set.nonempty_iff_ne_empty, ← closureStep_eq_iff'] at h
     rw [h] at huv'; exact huv huv'
@@ -367,8 +389,8 @@ lemma monotone_iterate (x : α) : Monotone (fun n => f^[n] x) := by
       exact (ih le).trans (hf _)
     · rw [le]
 
-lemma eventually_constant_iterate (x : α)
-  : ∃ n, ∀ m ≥ n, f^[m] x = f^[n] x := by
+lemma eventually_constant_iterate (x : α) :
+    ∃ n, ∀ m ≥ n, f^[m] x = f^[n] x := by
   obtain ⟨m, n, h₁, h₂⟩ := Finite.exists_ne_map_eq_of_infinite (fun n => f^[n] x)
   use min m n; intro n' hn';
   have eq : f^[min m n] x = f^[min m n + 1] x := by
@@ -386,14 +408,14 @@ lemma eventually_constant_iterate (x : α)
 
 def stop_index (x : α) : ℕ := (eventually_constant_iterate hf x).choose
 
-def stop_index_spec (x : α)
-  : ∀ m ≥ stop_index hf x, f^[m] x = f^[stop_index hf x] x :=
+def stop_index_spec (x : α) :
+    ∀ m ≥ stop_index hf x, f^[m] x = f^[stop_index hf x] x :=
   (eventually_constant_iterate hf x).choose_spec
 
 def eventuallyConstant (x : α) := f^[stop_index hf x] x
 
-lemma func_eventuallyConstant (x : α)
-  : f (eventuallyConstant hf x) = eventuallyConstant hf x := by
+lemma func_eventuallyConstant (x : α) :
+    f (eventuallyConstant hf x) = eventuallyConstant hf x := by
   simp only [eventuallyConstant, ← Function.iterate_succ_apply']
   apply stop_index_spec; simp
 
@@ -419,7 +441,7 @@ lemma _root_.List.tail_get {α} {i} (L : List α) (hi : i < L.tail.length) :
     L.tail[i] = L[i + 1]'(by simp at *; omega) := by
   induction L <;> simp at hi |-
 
-lemma lm1 {u v} {p : G.Walk u v} {i} (hi : i < p.length + 1) :
+lemma support_getVert_eq {u v} {p : G.Walk u v} {i} (hi : i < p.length + 1) :
     p.support[i]'(by simpa using hi) = p.getVert i := by
   induction p generalizing i with
   | nil => simp [Walk.getVert]
@@ -427,20 +449,20 @@ lemma lm1 {u v} {p : G.Walk u v} {i} (hi : i < p.length + 1) :
     cases' i with j; simp
     simp [Walk.getVert] at hi |-; exact ih (by omega)
 
-lemma lm2 {u v} {p : G.Walk u v} (hi : 0 < p.length) :
+lemma darts_start_eq_u {u v} {p : G.Walk u v} (hi : 0 < p.length) :
     (p.darts[0]'(by simp; omega)).fst = u := by
   induction p with
   | nil => simp at hi
   | @cons u' v' w' adj tail _ => simp
 
-lemma lm4 {u v} (p : G.Walk u v) (i : ℕ) (hi : 0 < i ∧ i < p.length) :
+lemma darts_tail_support_eq {u v} (p : G.Walk u v) (i : ℕ) (hi : 0 < i ∧ i < p.length) :
     (p.darts[i]'(by simp; omega)).fst = p.support.tail[i - 1]'(by simp; omega) := by
   simp only [← List.drop_one]; rw [← List.getElem_drop, p.darts_getElem_fst]
   simp only [show 1 + (i - 1) = i by omega]; exact hi.2; simp; omega
 
-private theorem thm1
-    {u : V} {p : G.Walk u u} (hp : p.length ≥ 3) (hp' : ∀ (a : V), List.count a p.support.tail = 1)
-  : p.IsHamiltonianCycle := by
+private theorem IsHamiltonianCycle_iff_support_count
+    {u : V} {p : G.Walk u u} (hp : p.length ≥ 3) (hp' : ∀ (a : V), List.count a p.support.tail = 1) :
+    p.IsHamiltonianCycle := by
   rw [Walk.isHamiltonianCycle_iff_isCycle_and_support_count_tail_eq_one]
   rw [Walk.isCycle_def, Walk.isTrail_def]
   refine And.intro ?_ hp'
@@ -467,16 +489,16 @@ private theorem thm1
     · intro h
       by_cases ij : i + 1 < j
       · apply_fun (·.snd) at h; simp at h
-        rw [p.darts_snd_getElem_support_tail i h₁, lm4 p j (by omega)] at h
+        rw [p.darts_snd_getElem_support_tail i h₁, darts_tail_support_eq p j (by omega)] at h
         exact nodup i (j - 1) h₅ (by omega) (by omega) h
       · apply_fun (·.fst) at h
         by_cases i0 : i = 0
-        · simp only [i0, lm2 (show 0 < p.length by omega)] at h
+        · simp only [i0, darts_start_eq_u (show 0 < p.length by omega)] at h
           have : p.support.tail[p.length - 1]'(by simp; omega) = u := by
-            simp [List.tail_get, show p.length - 1 + 1 = p.length by omega, lm1]
+            simp [List.tail_get, show p.length - 1 + 1 = p.length by omega, support_getVert_eq]
           simp [← this, p.darts_snd_getElem_support_tail j h₂] at h
           exact nodup j (p.length - 1) h₆ (by simp; omega) (by omega) h.symm
-        · simp [lm4 p i (by omega), p.darts_snd_getElem_support_tail j h₂] at h
+        · simp [darts_tail_support_eq p i (by omega), p.darts_snd_getElem_support_tail j h₂] at h
           exact nodup (i - 1) j  (by omega) h₆ (by omega) h
   · apply And.intro
     · intro nil_p
@@ -486,9 +508,9 @@ private theorem thm1
 
 theorem IsHamiltonianCycle.isHamiltonianCycle_of_tail_toFinset
     {u : V} {p : G.Walk u u} (hp : p.length = ‖V‖)
-    (hV : ‖V‖ ≥ 3) (hp' : p.support.tail.toFinset = Finset.univ)
-  : p.IsHamiltonianCycle := by
-  apply thm1; rwa [hp]
+    (hV : ‖V‖ ≥ 3) (hp' : p.support.tail.toFinset = Finset.univ) :
+    p.IsHamiltonianCycle := by
+  apply IsHamiltonianCycle_iff_support_count; rwa [hp]
   suffices p.support.tail ~ Finset.univ.toList by
     intro a; rw [List.Perm.count_eq this]
     apply List.count_eq_one_of_mem; apply Finset.nodup_toList; simp
@@ -499,8 +521,8 @@ theorem IsHamiltonianCycle.isHamiltonianCycle_of_tail_toFinset
     rwa [Finset.mem_toList, ← hp', List.mem_toFinset] at ha
   · simp [hp]
 
-private theorem dropUntil_not_nil {u v w : V} {p : G.Walk u v} (hw : w ∈ p.support) (ne : w ≠ v)
-  : ¬(p.dropUntil w hw).Nil := by
+private theorem dropUntil_not_nil {u v w : V} {p : G.Walk u v} (hw : w ∈ p.support) (ne : w ≠ v) :
+    ¬(p.dropUntil w hw).Nil := by
   induction p with
   | @nil u => simp at hw; exfalso; exact ne hw
   | @cons u' v' w' adj tail ih =>
@@ -515,8 +537,8 @@ private theorem from_ClosureStep_aux
     {u u' v v' : V} {p : G.Walk u u'}
     (hV : ‖V‖ ≥ 3) (hp : p.support ~ Finset.univ.toList)
     (ne : v ≠ u') (vu' : G.Adj v u') (v'u : G.Adj v' u)
-    (d : G.Dart) (hd : d ∈ p.darts) (hd₁ : d.fst = v) (hd₂ : d.snd = v')
-  : IsHamiltonian G := by
+    (d : G.Dart) (hd : d ∈ p.darts) (hd₁ : d.fst = v) (hd₂ : d.snd = v') :
+    IsHamiltonian G := by
   have hv : v ∈ p.support := by simp [List.Perm.mem_iff hp]
   have not_nil : ¬(p.dropUntil v hv).Nil := dropUntil_not_nil hv ne
   have snd_eq_v' : (p.dropUntil v hv).sndOfNotNil not_nil = v' := by
@@ -560,8 +582,8 @@ private theorem from_ClosureStep_aux
 
 private theorem from_ClosureStep_aux'
     {u v : V} {q : G.closureStep.Walk u u} (hq : q.IsHamiltonianCycle) (hV : ‖V‖ ≥ 3)
-    (huv : G.degree u + G.degree v ≥ ‖V‖) (hv : v = hq.next u) (not_adj : ¬G.Adj u v)
-  : ∃ w w' d, G.Adj w v ∧ G.Adj w' u ∧ d ∈ q.darts ∧ d.fst = w' ∧ d.snd = w := by
+    (huv : G.degree u + G.degree v ≥ ‖V‖) (hv : v = hq.next u) (not_adj : ¬G.Adj u v) :
+    ∃ w w' d, G.Adj w v ∧ G.Adj w' u ∧ d ∈ q.darts ∧ d.fst = w' ∧ d.snd = w := by
   let X := (hq.next ·) '' {w | G.Adj u w} \ {u}
   let Y := {w | G.Adj v w} \ {hq.next v}
   have cardX : G.degree u - 1 ≤ X.toFinset.card := calc
@@ -696,9 +718,11 @@ theorem from_closure_aux {n} (hG : ¬IsHamiltonian G) : ¬IsHamiltonian (closure
     simp [Function.iterate_add_apply] at ih |-
     exact from_ClosureStep ih
 
-theorem from_closure (hG : IsHamiltonian (closure G)) : IsHamiltonian G := by
-  unfold closure eventuallyConstant at hG
-  contrapose hG; exact from_closure_aux hG
+theorem from_closure : IsHamiltonian (closure G) ↔ IsHamiltonian G := by
+  apply Iff.intro <;> intro hG
+  · unfold closure eventuallyConstant at hG
+    contrapose hG; exact from_closure_aux hG
+  · exact IsHamiltonian.mono (self_le_closure _) hG
 
 theorem completeGraph (hV : ‖V‖ = 1 ∨ ‖V‖ ≥ 3) : IsHamiltonian (⊤ : SimpleGraph V) := by
   cases' hV with hV hV
@@ -729,10 +753,10 @@ theorem Dirac (hV : ‖V‖ ≥ 3) (hG : ∀ u, 2 * G.degree u ≥ ‖V‖) : G.
       ‖V‖ ≤ G.degree u + G.degree v := by have := hG u; have:= hG v; omega
       _ ≤ G.closure.degree u + G.closure.degree v :=
         add_le_add (degree_mono u (self_le_closure G)) (degree_mono v (self_le_closure G))
-  exact from_closure (this ▸ completeGraph (by omega))
+  exact from_closure.mp (this ▸ completeGraph (by omega))
 
-theorem Ore (hV : ‖V‖ ≥ 3) (hG : ∀ {u} {v}, ¬ G.Adj u v → G.degree u + G.degree v ≥ ‖V‖)
-  : G.IsHamiltonian := by
+theorem Ore (hV : ‖V‖ ≥ 3) (hG : ∀ {u} {v}, ¬ G.Adj u v → G.degree u + G.degree v ≥ ‖V‖) :
+    G.IsHamiltonian := by
   have : G.closure = (⊤ : SimpleGraph V) := by
     rw [eq_top_iff]; intro u v ne; simp at ne
     by_cases adj : G.Adj u v
@@ -741,7 +765,7 @@ theorem Ore (hV : ‖V‖ ≥ 3) (hG : ∀ {u} {v}, ¬ G.Adj u v → G.degree u 
       ‖V‖ ≤ G.degree u + G.degree v := hG adj
       _ ≤ G.closure.degree u + G.closure.degree v :=
         add_le_add (degree_mono u (self_le_closure G)) (degree_mono v (self_le_closure G))
-  exact from_closure (this ▸ completeGraph (by omega))
+  exact from_closure.mp (this ▸ completeGraph (by omega))
 
 end IsHamiltonian
 end SimpleGraph
