@@ -17,10 +17,11 @@ In this file we proved Bondy-Chvátal theorem and some of its corollaries.
 
 * `SimpleGraph.IsHamiltonian.from_closure`: Bondy-Chvátal theorem, a graph is
   Hamiltonian iff its closure is Hamiltonian.
-* `SimpleGraph.IsHamiltonian.dirac_theorem`: Dirac's theorem: If `G` is a graph with at least 3 vertices,
-  and deg(u) ≥ |V| / 2 for every vertex `u`, then `G` is Hamiltonian.
-* `SimpleGraph.IsHamiltonian.ore_theorem`: Ore's theorem: If `G` is a graph with at least 3 vertices,
-  amd deg(u) + deg(v) ≥ |V| for every non-adjacent vertices `u` and `v`, then `G` is Hamiltonian.
+* `SimpleGraph.IsHamiltonian.dirac_theorem`: Dirac's theorem: If `G` is a graph with
+  at least 3 vertices, and deg(u) ≥ |V| / 2 for every vertex `u`, then `G` is Hamiltonian.
+* `SimpleGraph.IsHamiltonian.ore_theorem`: Ore's theorem: If `G` is a graph with
+  at least 3 vertices, and deg(u) + deg(v) ≥ |V| for every non-adjacent vertices `u` and `v`,
+  then `G` is Hamiltonian.
 -/
 
 namespace List
@@ -33,7 +34,8 @@ theorem getElem_reverse' {α} (l : List α) (i : Nat) (h1 h2) :
   simp at h1
   omega
 
-theorem reverse_tail_eq_dropLast_reverse {α} (l : List α) : l.reverse.tail = l.dropLast.reverse := by
+theorem reverse_tail_eq_dropLast_reverse {α} (l : List α) :
+    l.reverse.tail = l.dropLast.reverse := by
   ext i v; by_cases hi : i < l.length - 1
   · simp only [← drop_one]
     rw [getElem?_eq_getElem (by simpa), getElem?_eq_getElem (by simpa),
@@ -172,11 +174,14 @@ lemma darts_getElem_zero {u v} {p : G.Walk u v} (hi : 0 < p.length) :
 @[simp] lemma support_head {u v : V} {p : G.Walk u v} : p.support.head (by simp) = u := by
   induction p <;> simp
 
-@[simp] lemma support_tail_ne_nil {u v : V} {p : G.Walk u v} (hp : ¬p.Nil) : p.support.tail ≠ [] := by
+@[simp] lemma support_tail_ne_nil {u v : V} {p : G.Walk u v} (hp : ¬p.Nil) :
+    p.support.tail ≠ [] := by
   cases p <;> simp at hp |-
 
-@[simp] lemma support_getLast {u v : V} {p : G.Walk u v} : p.support.getLast (by simp) = v := by
-  have : p.support.getLast (by simp) = p.reverse.support.head (by simp) := by simp [List.head_reverse]
+@[simp] lemma support_getLast {u v : V} {p : G.Walk u v} :
+    p.support.getLast (by simp) = v := by
+  have : p.support.getLast (by simp) = p.reverse.support.head (by simp) := by
+    simp [List.head_reverse]
   simp only [support_head, this]
 
 lemma sum_takeUntil_dropUntil_length {u v w : V} {p : G.Walk u v} (hw : w ∈ p.support) :
@@ -204,8 +209,8 @@ lemma prev_unique {u v : V} {c : G.Walk u v} {d₁ d₂ : G.Dart} (nodup : c.sup
     congr
   exact ne $ List.inj_on_of_nodup_map (c.map_snd_darts ▸ nodup) hd₁ hd₂ eq
 
-lemma next_unique {u v : V} {c : G.Walk u v} {d₁ d₂ : G.Dart}
-    (nodup : c.support.dropLast.Nodup) (hd₁ : d₁ ∈ c.darts) (hd₂ : d₂ ∈ c.darts) (eq : d₁.fst = d₂.fst) :
+lemma next_unique {u v : V} {c : G.Walk u v} (nodup : c.support.dropLast.Nodup)
+    {d₁ d₂ : G.Dart} (hd₁ : d₁ ∈ c.darts) (hd₂ : d₂ ∈ c.darts) (eq : d₁.fst = d₂.fst) :
     d₁.snd = d₂.snd := by
   by_contra h
   have ne : d₁ ≠ d₂ := by
@@ -543,7 +548,8 @@ lemma degree_mono (u : V) : Monotone (fun G => degree G u) := by
   exact le hv
 
 private theorem IsHamiltonianCycle_iff_support_count
-    {u : V} {p : G.Walk u u} (hp : p.length ≥ 3) (hp' : ∀ (a : V), List.count a p.support.tail = 1) :
+    {u : V} {p : G.Walk u u}
+    (hp : p.length ≥ 3) (hp' : ∀ (a : V), List.count a p.support.tail = 1) :
     p.IsHamiltonianCycle := by
   rw [Walk.isHamiltonianCycle_iff_isCycle_and_support_count_tail_eq_one]
   rw [Walk.isCycle_def, Walk.isTrail_def]
@@ -578,16 +584,19 @@ private theorem IsHamiltonianCycle_iff_support_count
       by_cases ij : i + 1 < j
       · apply_fun (·.snd) at h
         simp at h
-        rw [p.darts_getElem_snd_eq_support_tail i h₁, p.darts_getElem_fst_eq_support_tail j (by omega)] at h
+        rw [p.darts_getElem_snd_eq_support_tail i h₁,
+          p.darts_getElem_fst_eq_support_tail j (by omega)] at h
         exact nodup i (j - 1) h₅ (by omega) (by omega) h
       · apply_fun (·.fst) at h
         by_cases i0 : i = 0
         · simp only [i0, darts_getElem_zero (show 0 < p.length by omega)] at h
           have : p.support.tail[p.length - 1]'(by simp; omega) = u := by
-            simp [List.tail_get, show p.length - 1 + 1 = p.length by omega, support_getElem_eq_getVert]
+            simp [List.tail_get, show p.length - 1 + 1 = p.length by omega,
+              support_getElem_eq_getVert]
           simp [← this, p.darts_getElem_snd_eq_support_tail j h₂] at h
           exact nodup j (p.length - 1) h₆ (by simp; omega) (by omega) h.symm
-        · simp [p.darts_getElem_fst_eq_support_tail i (by omega), p.darts_getElem_snd_eq_support_tail j h₂] at h
+        · simp [p.darts_getElem_fst_eq_support_tail i (by omega),
+            p.darts_getElem_snd_eq_support_tail j h₂] at h
           exact nodup (i - 1) j  (by omega) h₆ (by omega) h
   · apply And.intro
     · intro nil_p
@@ -912,7 +921,7 @@ theorem dirac_theorem (hV : ‖V‖ ≥ 3) (hG : ∀ u, 2 * G.degree u ≥ ‖V�
         add_le_add (degree_mono u (self_le_closure G)) (degree_mono v (self_le_closure G))
   exact from_closure.mp (this ▸ complete_graph (by omega))
 
-theorem ore_theorem (hV : ‖V‖ ≥ 3) (hG : ∀ {u} {v}, ¬ G.Adj u v → G.degree u + G.degree v ≥ ‖V‖) :
+theorem ore_theorem (hV : ‖V‖ ≥ 3) (hG : ∀ {u} {v}, ¬G.Adj u v → G.degree u + G.degree v ≥ ‖V‖) :
     G.IsHamiltonian := by
   have : G.closure = (⊤ : SimpleGraph V) := by
     rw [eq_top_iff]
